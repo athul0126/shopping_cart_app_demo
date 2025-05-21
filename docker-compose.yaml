@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: server
+    working_dir: /app
+    ports:
+      - "5000:5000"
+    restart: always
+    environment:
+      - MONGODB_URI=mongodb://admin:password@shopping-cart-database:27017/shopping-cart?authSource=admin
+      - PORT=5000
+      - JWT_SECRET=samplesecret
+    networks:
+      - shopping-cart-network
+    depends_on:
+      - shopping-cart-database
+
+  client:
+   build:
+    context: ./frontend
+    dockerfile: Dockerfile
+   container_name: client
+   ports:
+    - "3000:80"
+   restart: always
+   networks:
+    - shopping-cart-network
+   environment:
+   - VITE_BASE_URL=http://localhost:5000
+
+   depends_on:
+    - server
+
+  shopping-cart-database:
+    image: mongo:latest
+    container_name: shopping-cart-database
+    ports:
+      - "27017:27017"
+    restart: always
+    networks:
+      - shopping-cart-network
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=shopping-cart
+    volumes:
+      - shopping-cart-data:/data/db
+  db-handler:
+    image: mongo-express:latest
+    container_name: db-handler
+    ports:
+      - "8081:8081"
+    restart: always
+    networks:
+      - shopping-cart-network
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=shopping-cart-database
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+networks:
+  shopping-cart-network:
+    driver: bridge
+volumes:
+  shopping-cart-data:
